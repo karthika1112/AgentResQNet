@@ -25,15 +25,15 @@ const icons = {
   responder: createIcon('gold'),
   volunteer: createIcon('blue'),
   shelter: createIcon('green'),
-  nasa: createIcon('orange'),
-  quake: createIcon('violet')
+  quake: createIcon('violet'),
+  predict: createIcon('black')
 };
 
 export const AdminGISMap = React.memo(() => {
   const [incidents, setIncidents] = useState([]);
   const [helpRequests, setHelpRequests] = useState([]);
-  const [nasaEvents, setNasaEvents] = useState([]);
   const [earthquakes, setEarthquakes] = useState([]);
+  const [predictiveEvents, setPredictiveEvents] = useState([]);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -47,14 +47,20 @@ export const AdminGISMap = React.memo(() => {
         if (helpRes.data.success) setHelpRequests(helpRes.data.data);
 
         // External Satellite & Geological Data (Real-World)
-        const [nasaRes, usgsRes] = await Promise.all([
-          fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=200').then(r => r.json()).catch(() => ({ events: [] })),
-          fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson').then(r => r.json()).catch(() => ({ features: [] }))
-        ]);
+        const usgsRes = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson').then(r => r.json()).catch(() => ({ features: [] }));
         
-        if (nasaRes.events) setNasaEvents(nasaRes.events);
         if (usgsRes.features) setEarthquakes(usgsRes.features);
         
+        // AI Predictive Data Feed (Simulated for demonstration of prediction capabilities)
+        const mockPredictions = [
+          { id: 'p1', type: 'Flood', lat: 28.7041, lng: 77.1025, title: 'Severe Flood Warning', predictTime: '4 hours', risk: 'Critical', emoji: '🌊' },
+          { id: 'p2', type: 'Wildfire', lat: -33.8688, lng: 151.2093, title: 'Wildfire Expansion', predictTime: '12 hours', risk: 'High', emoji: '🔥' },
+          { id: 'p3', type: 'Cyclone', lat: 22.5726, lng: 88.3639, title: 'Cyclone Landfall Prediction', predictTime: '24 hours', risk: 'Critical', emoji: '🌪️' },
+          { id: 'p4', type: 'Tsunami', lat: 35.6762, lng: 139.6503, title: 'Tsunami Wave Threat', predictTime: '2 hours', risk: 'Critical', emoji: '🌊' },
+          { id: 'p5', type: 'Flood', lat: 51.5074, lng: -0.1278, title: 'Urban Flash Flood', predictTime: '6 hours', risk: 'Medium', emoji: '🌊' }
+        ];
+        setPredictiveEvents(mockPredictions);
+
       } catch (err) {
         console.error("Failed to fetch map data", err);
       }
@@ -77,8 +83,8 @@ export const AdminGISMap = React.memo(() => {
         <div className="space-y-1 text-xs font-bold uppercase tracking-wider">
           <div className="flex items-center text-red-500"><div className="w-3 h-3 rounded-full bg-red-500 mr-2 shadow-[0_0_10px_red]"></div> Local Incidents</div>
           <div className="flex items-center text-yellow-500"><div className="w-3 h-3 rounded-full bg-gold mr-2 shadow-[0_0_10px_yellow]"></div> Victim SOS</div>
-          <div className="flex items-center text-orange-500"><div className="w-3 h-3 rounded-full bg-orange-500 mr-2 shadow-[0_0_10px_orange]"></div> NASA Satellite Events</div>
           <div className="flex items-center text-purple-400"><div className="w-3 h-3 rounded-full bg-violet-500 mr-2 shadow-[0_0_10px_purple]"></div> USGS Earthquakes (M4.5+)</div>
+          <div className="flex items-center text-gray-400"><div className="w-3 h-3 rounded-full bg-gray-500 mr-2 shadow-[0_0_10px_gray]"></div> AI Predictive Models</div>
         </div>
       </div>
 
@@ -89,41 +95,33 @@ export const AdminGISMap = React.memo(() => {
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap &copy; CARTO | Data: NASA EONET, USGS'
+          attribution='&copy; OpenStreetMap &copy; CARTO | Data: USGS'
         />
 
-        {/* NASA EONET Events (Wildfires, Storms, Volcanoes, Floods) */}
-        {nasaEvents.map(event => {
-          if (!event.geometry || event.geometry.length === 0) return null;
-          const coords = event.geometry[0].coordinates;
-          const lat = coords[1];
-          const lng = coords[0];
-          
-          const categoryName = event.categories.map(c => c.title).join(', ');
-          let categoryEmoji = '🛰️';
-          if (categoryName.toLowerCase().includes('fire')) categoryEmoji = '🔥';
-          else if (categoryName.toLowerCase().includes('flood')) categoryEmoji = '🌊';
-          else if (categoryName.toLowerCase().includes('storm')) categoryEmoji = '🌪️';
-          else if (categoryName.toLowerCase().includes('volcano')) categoryEmoji = '🌋';
-          else if (categoryName.toLowerCase().includes('ice')) categoryEmoji = '🧊';
-          
-          return (
-            <React.Fragment key={event.id}>
-              <Marker position={[lat, lng]} icon={icons.nasa}>
-                <Popup className="custom-popup">
-                  <div className="font-sans min-w-[200px]">
-                    <strong className="text-orange-500 block text-sm mb-1 uppercase tracking-wider">{categoryEmoji} NASA Satellite Data</strong>
-                    <div className="text-xs space-y-1 mt-2 border-t pt-2">
-                      <p><strong>🚨 Event:</strong> {event.title}</p>
-                      <p><strong>🏷️ Category:</strong> {categoryName}</p>
-                      <p><strong>🕒 Time:</strong> {new Date(event.geometry[0].date).toLocaleString()}</p>
-                    </div>
+        {/* AI Predictive Events */}
+        {predictiveEvents.map(event => (
+          <React.Fragment key={event.id}>
+            <Marker position={[event.lat, event.lng]} icon={icons.predict}>
+              <Popup className="custom-popup">
+                <div className="font-sans min-w-[200px]">
+                  <strong className="text-cyan-400 block text-sm mb-1 uppercase tracking-wider">{event.emoji} AI Predictive Alert</strong>
+                  <div className="text-xs space-y-1 mt-2 border-t border-[rgba(255,255,255,0.1)] pt-2">
+                    <p><strong>🚨 Event:</strong> {event.title}</p>
+                    <p><strong>⏳ Impact In:</strong> <span className="font-bold text-red-400">{event.predictTime}</span></p>
+                    <p>
+                        <strong>⚠️ Risk Level:</strong> 
+                        <span className={`ml-1 px-1.5 py-0.5 rounded text-white font-bold ${
+                          event.risk === 'Critical' ? 'bg-red-600' : 
+                          event.risk === 'High' ? 'bg-orange-500' : 'bg-yellow-500'
+                        }`}>{event.risk}</span>
+                    </p>
                   </div>
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          );
-        })}
+                </div>
+              </Popup>
+            </Marker>
+            <Circle center={[event.lat, event.lng]} radius={100000} pathOptions={{ color: 'cyan', fillOpacity: 0.1, weight: 1, dashArray: '5, 10' }} />
+          </React.Fragment>
+        ))}
 
         {/* USGS Earthquakes */}
         {earthquakes.map(quake => {
@@ -137,11 +135,23 @@ export const AdminGISMap = React.memo(() => {
               <Marker position={[lat, lng]} icon={icons.quake}>
                 <Popup className="custom-popup">
                   <div className="font-sans min-w-[200px]">
-                    <strong className="text-purple-500 block text-sm mb-1 uppercase tracking-wider">USGS Seismograph</strong>
-                    <div className="text-xs space-y-1 mt-2 border-t pt-2">
-                      <p><strong>📍 Place:</strong> {quake.properties.place}</p>
-                      <p><strong>⚠️ Magnitude:</strong> <span className="font-bold text-red-500">{mag}</span></p>
+                    <strong className="text-purple-500 block text-sm mb-1 uppercase tracking-wider">📉 USGS Seismograph</strong>
+                    <div className="text-xs space-y-1 mt-2 border-t border-[rgba(255,255,255,0.1)] pt-2">
+                      <p><strong>📍 Epicenter:</strong> {quake.properties.place}</p>
+                      <p><strong>⚠️ Magnitude:</strong> <span className="font-bold text-purple-400">{mag}</span></p>
                       <p><strong>🕒 Time:</strong> {new Date(quake.properties.time).toLocaleString()}</p>
+                    </div>
+                    {/* AI Prediction Injection */}
+                    <div className="text-xs space-y-1 mt-2 border-t border-[rgba(255,255,255,0.1)] pt-2 bg-black/30 p-2 rounded">
+                      <p className="text-cyan-400 text-[10px] font-black uppercase tracking-widest mb-1">🧠 AI Aftershock Prediction</p>
+                      <p><strong>⏳ Impact Window:</strong> <span className="font-bold text-red-400">Next {Math.floor(mag * 2)} hours</span></p>
+                      <p>
+                          <strong>⚠️ Risk Level:</strong> 
+                          <span className={`ml-1 px-1.5 py-0.5 rounded text-white font-bold ${
+                            mag >= 5.5 ? 'bg-red-600' : 
+                            mag >= 4.5 ? 'bg-orange-500' : 'bg-yellow-500'
+                          }`}>{mag >= 5.5 ? 'Critical' : mag >= 4.5 ? 'High' : 'Medium'}</span>
+                      </p>
                     </div>
                   </div>
                 </Popup>

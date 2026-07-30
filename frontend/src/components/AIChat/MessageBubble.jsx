@@ -39,7 +39,12 @@ export const MessageBubble = ({ message, isAI, isTyping = false, agentName = 'AI
           </div>
         )}
 
-        <div className="prose prose-invert max-w-none text-sm">
+        <div className="prose prose-invert max-w-none text-sm break-words">
+          {message.audioUrl && (
+            <div className="mb-2 p-1 bg-black/20 rounded-lg">
+              <audio controls src={message.audioUrl} className="w-full h-8 max-w-[250px] outline-none" />
+            </div>
+          )}
           {isTyping && isAI ? (
             <TypingIndicator text={message.text} speed={15} />
           ) : (

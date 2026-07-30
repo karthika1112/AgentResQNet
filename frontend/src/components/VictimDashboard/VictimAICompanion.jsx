@@ -14,9 +14,12 @@ export const VictimAICompanion = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [activeAgent, setActiveAgent] = useState("Commander Agent");
+  const [pendingAudioUrl, setPendingAudioUrl] = useState(null);
   
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
@@ -47,11 +50,13 @@ export const VictimAICompanion = () => {
 
   const handleSend = async (textOverride = null) => {
     const textToSend = textOverride || inputValue;
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() && !pendingAudioUrl) return;
 
     setInputValue('');
+    const audioToSend = pendingAudioUrl;
+    setPendingAudioUrl(null);
     
-    setMessages(prev => [...prev, { id: `usr_${Date.now()}`, text: textToSend, isAI: false, timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: `usr_${Date.now()}`, text: textToSend || '🎤 Voice Message', audioUrl: audioToSend, isAI: false, timestamp: new Date() }]);
     setIsTyping(true);
 
     try {
@@ -104,9 +109,44 @@ export const VictimAICompanion = () => {
     }
   };
 
-  const toggleListen = () => {
-    if (isListening) recognitionRef.current?.stop();
-    else { recognitionRef.current?.start(); setIsListening(true); }
+  const toggleListen = async () => {
+    if (isListening) {
+      setIsListening(false);
+      recognitionRef.current?.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          setPendingAudioUrl(audioUrl);
+          
+          // Stop stream tracks to free microphone
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+        recognitionRef.current?.start();
+        setIsListening(true);
+        toast.success("Recording started...", { icon: '🎙️' });
+      } catch (err) {
+        toast.error("Microphone access denied. Please allow permissions.");
+        console.error("Mic access error", err);
+      }
+    }
   };
 
   const quickActions = [
@@ -190,25 +230,37 @@ export const VictimAICompanion = () => {
           <button className="p-2 text-gray-400 hover:text-blue-400 transition-colors bg-[rgba(255,255,255,0.02)] rounded-lg mr-2" title="Upload Evidence (Photos/Docs)">
              <Camera size={18} />
           </button>
-          <input
-            type="text"
-            className="flex-1 bg-transparent text-white outline-none text-sm px-2 font-mono"
-            placeholder="Describe your emergency or ask a question..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          />
+          
+          {pendingAudioUrl ? (
+            <div className="flex-1 flex items-center px-2 bg-black/20 rounded mr-2 overflow-hidden border border-[rgba(255,255,255,0.05)]">
+              <audio controls src={pendingAudioUrl} className="h-8 w-full outline-none" />
+              <button onClick={() => setPendingAudioUrl(null)} className="ml-2 text-red-400 hover:text-red-300 font-bold" title="Discard Audio">
+                 ✕
+              </button>
+            </div>
+          ) : (
+            <input
+              type="text"
+              className="flex-1 bg-transparent text-white outline-none text-sm px-2 font-mono"
+              placeholder={isListening ? "Listening... (Speak now)" : "Describe your emergency or ask a question..."}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              readOnly={isListening}
+            />
+          )}
+
           <button 
             onClick={toggleListen}
-            className={`p-2 rounded-lg mx-2 transition-colors ${isListening ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-            title="Voice Input"
+            className={`p-2 rounded-lg mx-2 transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            title="Voice Recording"
           >
             {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
           <button 
             onClick={() => handleSend()}
-            disabled={!inputValue.trim() || isTyping}
-            className={`px-6 py-3 rounded-lg transition-colors font-black uppercase tracking-widest text-xs flex items-center ${!inputValue.trim() || isTyping ? 'bg-[rgba(255,255,255,0.05)] text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]'}`}
+            disabled={(!inputValue.trim() && !pendingAudioUrl) || isTyping}
+            className={`px-6 py-3 rounded-lg transition-colors font-black uppercase tracking-widest text-xs flex items-center ${(!inputValue.trim() && !pendingAudioUrl) || isTyping ? 'bg-[rgba(255,255,255,0.05)] text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]'}`}
           >
             <Send size={16} className="mr-2" />
             Send
