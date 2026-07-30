@@ -25,6 +25,9 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return next(new AppError('Please provide email and password', 400));
+    }
     const userData = await authService.loginUser(email, password);
     res.status(200).json({
       success: true,
