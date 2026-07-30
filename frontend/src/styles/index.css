@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #030712;
+    --bg-secondary: #07111F;
+    --glass-bg: rgba(18, 26, 44, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glow-primary: rgba(59, 130, 246, 0.35);
+    
+    --color-primary: #3B82F6;
+    --color-secondary: #38BDF8;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-critical: #EF4444;
+    --color-info: #06B6D4;
+  }
+
+  body {
+    @apply bg-[#030712] text-gray-200 antialiased selection:bg-blue-500/30 selection:text-blue-200;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Panels */
+  .glass-panel {
+    @apply bg-[rgba(18,26,44,0.72)] backdrop-blur-xl border border-[rgba(255,255,255,0.08)] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+  }
+
+  .glass-card {
+    @apply bg-[#0B0F19] border border-[rgba(255,255,255,0.05)] rounded-xl transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply border-[rgba(59,130,246,0.3)] shadow-[0_0_20px_rgba(59,130,246,0.1)] transform -translate-y-1;
+  }
+
+  /* Form Elements */
+  .glass-input {
+    @apply w-full bg-[rgba(15,23,42,0.6)] border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-gray-600;
+  }
+
+  .glass-button {
+    @apply w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)];
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Animations */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  margin-top: -100%;
+  margin-left: -100%;
+  background: conic-gradient(from 0deg, transparent 70%, rgba(59, 130, 246, 0.4) 100%);
+  animation: radar-sweep 4s linear infinite;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+}
+
+.critical-pulse {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Leaflet Customizations for Dark Theme */
+.leaflet-popup-content-wrapper {
+  background: #141C2D !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 8px !important;
+}
+.leaflet-popup-tip {
+  background: #141C2D !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}

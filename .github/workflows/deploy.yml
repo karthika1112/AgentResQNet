@@ -1,0 +1,64 @@
+name: ResQNet CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            
+      # Backend
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+        
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: npm test
+        
+      # Frontend
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+        
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+        
+  deploy:
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Render Backend Deployment
+        # You will need to set RENDER_DEPLOY_HOOK_URL in your GitHub Repository Secrets
+        if: env.RENDER_DEPLOY_HOOK_URL != null
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        
+      - name: Trigger Vercel Frontend Deployment
+        # Vercel natively integrates with GitHub for automatic deployments on push.
+        # This step is just a placeholder if you prefer manual webhook triggers.
+        run: echo "Vercel will automatically deploy based on the GitHub integration."
